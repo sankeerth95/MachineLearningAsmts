@@ -1,0 +1,166 @@
+import numpy as np
+import data_processing_prob10 as dp
+import sys
+import utility as utl
+#dirichlet = size(V)*[0]
+#beta = [0.1, 0.1]
+
+#0-spam, 1-ham
+
+def add_words_to_dict(text, words):
+	for word in words:
+		text[word] = text.get(word, 0)+1
+
+#docs[word] == no. of files having the word
+def add_stat_to_docs(doc, words):
+	for word in set(words):
+		doc[word] = doc.get(word, 0)+1
+
+def concat_txt_all_docs(X, y, text):
+	j=0
+	for x in X:
+		if y[j] < 0.5:
+			add_words_to_dict(text[0], x)
+		else:
+			add_words_to_dict(text[1], x)
+		j+=1
+
+def make_docs_hist(X, y, docs):
+	j=0
+	for x in X:
+		if y[j] < 0.5:
+			add_stat_to_docs(docs[0], x)
+		else:
+			add_stat_to_docs(docs[1], x)
+		j+=1
+
+
+def train_multinomial(X, ylist, V):
+
+	y = np.array(ylist)
+	prior = [0.0, 0.0]
+	K = [0.0, 0.0]
+	text = [{}, {}]
+	cond_prob = [{}, {}]
+	concat_txt_all_docs(X, y, text)
+
+	for i in xrange(2):
+		prior[i] = (1.0*len(y[y==i]))/len(y)
+		for word in V:
+			cond_prob[i][word] = text[i].get(word, 0)+ 1
+			K[i] += text[i].get(word, 0)+1
+		for word in V:
+			cond_prob[i][word] /= K[i];
+
+	return prior, cond_prob
+
+
+def train_bernoulli(X, ylist, V):
+
+	y  = np.array(ylist)
+	K = [0.0, 0.0]
+	prior = [0.0, 0.0]
+	cond_prob = [{}, {}]
+	docs = [{}, {}]
+	make_docs_hist(X, y, docs)
+	for i in xrange(2):
+
+		prior[i] = (1.0*len(y[y==i]))/len(y)
+		for word in V:
+			cond_prob[i][word] = docs[i].get(word, 0) + 1.0
+			K[i] += docs[i].get(word, 0) + 1.0
+		for word in V:
+			cond_prob[i][word] /= (K[i]+2);
+
+	return prior, cond_prob
+
+
+def predict_bernoulli(x, prior, cond_prob, V):
+
+	score = [0.0, 0.0]
+	for i in xrange(2):
+		score[i] += np.log(prior[i])
+		for word in V:
+			if word in x:
+				score[i] += np.log(cond_prob[i].get(word, 1))
+			else:
+				score[i] += np.log(1-cond_prob[i].get(word, 0))
+	if score[0]>score[1]:
+		return 0
+	else:
+		return 1
+
+
+def predict_multinomial(x, prior, cond_prob):
+	
+	score = [0, 0]
+	for i in xrange(2):
+		score[i] += np.log(prior[i])
+		for word in x:
+			score[i] += np.log(cond_prob[i].get(word, 1))
+
+	if score[0]>score[1]:
+		return 0
+	else:
+		return 1
+
+def predict_multi_test(X, y, prior, cond_prob):
+
+	ypredicted = []	
+	for x in X:
+		ypredicted.append(predict_multinomial(x, prior, cond_prob))
+	return ypredicted
+
+def predict_bernoulli_test(X, y, prior, cond_prob, V):
+
+	ypredicted = []	
+	for x in X:
+		ypredicted.append(predict_bernoulli(x, prior, cond_prob, V))
+	return ypredicted
+
+def performance_meas(ypr, yt):
+
+	ypredicted = np.array(ypr)
+	ytest = np.array(yt)
+	TP = 0.0
+	FP = 0.0
+	FN = 0.0
+	TN = 0.0
+	j=0
+	for y in ytest:
+		if y > 0.5:
+			if ypredicted[j] > 0.5:
+				TP+=1
+			else:
+				FN+=1
+		else:
+			if ypredicted[j] > 0.5:
+				TN+=1
+			else:
+				FP+=1
+		j += 1
+
+	precision = TP/(TP+FP)
+	recall = TP/(TP+FN)
+	F_score = 2*precision*recall/(precision+recall)
+	accuracy = 50.0*sum(abs(2*ypredicted+2*ytest-2))/(1.0*len(ytest))
+	return precision, recall, F_score, accuracy
+
+in_split = 0
+if len(sys.argv) > 1:
+	in_split = sys.argv[1]
+
+
+Xtr, ytr, Xt, yt, vocabulary = dp.get_data(int(in_split))
+
+priormulti, cond_probmulti = train_multinomial(Xtr, ytr, vocabulary)
+yprmulti = np.array(predict_multi_test(Xt, yt, priormulti, cond_probmulti))
+print utl.get_perf_params(yprmulti, 2*np.array(yt)-1)
+
+
+priorbernoulli, cond_probbernoulli = train_bernoulli(Xtr, ytr, vocabulary)
+yprbernoulli = np.array(predict_bernoulli_test(Xt, yt, priorbernoulli, cond_probbernoulli, vocabulary))
+print utl.get_perf_params(yprbernoulli, 2*np.array(yt)-1)
+
+
+

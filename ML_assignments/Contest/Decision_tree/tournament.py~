@@ -1,0 +1,42 @@
+#Binary class classifier: Outputs thetraining error
+#Also outputs histogram of class
+
+import numpy as np
+import utility as utl
+from sklearn import tree
+import sys
+
+print "Loading data..."
+Xlist, ylist = utl.get_data("../DATASET/train_data", "../DATASET/train_labels")
+print "Loaded data"
+
+def train_logreg(i, j, Xlist, ylist):
+
+	X1 = []
+	y1 = []
+	k=0
+	for y in ylist:
+	
+		X1.append(Xlist[k])
+		t = int(y)
+		y1.append(t)
+		k+=1
+
+	X1 = np.array(X1)
+	y1 = np.array(y1)
+	logreg = linear_model.LogisticRegression(C = 1e2)
+	logreg.fit(X1, y1)
+	return logreg
+
+
+print "Training..."
+
+tree_mod = tree.DecisionTreeClassifier(min_samples_leaf=2)
+tree_mod.fit(Xlist, ylist)
+
+print "Training done"
+
+
+
+
+

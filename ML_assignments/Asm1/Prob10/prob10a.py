@@ -1,0 +1,120 @@
+import numpy as np
+import data_processing_prob10 as dp
+import sys
+import matplotlib.pyplot as plt
+import utility as utl
+#dirichlet parameters
+alpha = 1
+alpha_params = []
+
+
+#0-spam, 1-ham
+
+def add_words_to_dict(text, words):
+	for word in words:
+		text[word] = text.get(word, 0)+1
+
+def concat_txt_all_docs(X, y, text):
+	j=0
+	for x in X:
+		if y[j] < 0.5:
+			add_words_to_dict(text[0], x)
+		else:
+			add_words_to_dict(text[1], x)
+		j+=1
+
+
+def train_multinomial(X, ylist, V):
+
+	y = np.array(ylist)
+	prior = [0.0, 0.0]
+	K = [0.0, 0.0]
+	text = [{}, {}]
+	cond_prob = [{}, {}]
+	concat_txt_all_docs(X, y, text)
+
+	for i in xrange(2):
+		prior[i] = (1.0*len(y[y==i]))/len(y)
+		for word in V:
+			cond_prob[i][word] = text[i].get(word, 0)+ alpha_params[i]
+			K[i] += text[i].get(word, 0)+alpha_params[i]
+		for word in V:
+			cond_prob[i][word] /= K[i];
+
+	return prior, cond_prob
+
+
+def predict_bernoulli(x, prior, cond_prob, V):
+
+	score = [0.0, 0.0]
+	for i in xrange(2):
+		score[i] += np.log(prior[i])
+		for word in V:
+			if word in x:
+				score[i] += np.log(cond_prob[i].get(word, 1))
+			else:
+				score[i] += np.log(1-cond_prob[i].get(word, 0))
+	if score[0]>score[1]:
+		return 0
+	else:
+		return 1
+
+
+def predict_multinomial(x, prior, cond_prob):
+	
+	score = [0, 0]
+	for i in xrange(2):
+		score[i] += np.log(prior[i])
+		for word in x:
+			score[i] += np.log(cond_prob[i].get(word, 1))
+
+	if score[0]>score[1]:
+		return 0
+	else:
+		return 1
+
+def predict_multi_test(X, y, prior, cond_prob):
+
+	ypredicted = []	
+	for x in X:
+		ypredicted.append(predict_multinomial(x, prior, cond_prob))
+	return ypredicted
+
+in_split = 0
+if len(sys.argv) > 1:
+	in_split = sys.argv[1]
+
+
+Xtr, ytr, Xt, yt, vocabulary = dp.get_data(int(in_split))
+alpha_params = [alpha]*len(vocabulary)
+priormulti, cond_probmulti = train_multinomial(Xtr, ytr, vocabulary)
+yprmulti = np.array(predict_multi_test(Xt, yt, priormulti, cond_probmulti))
+#print utl.get_perf_params(yprmulti, 2*np.array(yt)-1)
+utl.write_data("out_prob10a.txt", [], utl.get_perf_params(yprmulti, 2*np.array(yt)-1))
+
+alphavec = [1.0, 500, 1000, 2000, 3000, 4000, 5000, 10000]
+precision = [0.0]*len(alphavec)
+recall = [0.0]*len(alphavec)
+f_meas = [0.0]*len(alphavec)
+accuracy = [0.0]*len(alphavec)
+j = 0
+
+for alpha in alphavec:
+
+	Xtr, ytr, Xt, yt, vocabulary = dp.get_data(0)
+	alpha_params = [alpha]*len(vocabulary)
+	priormulti, cond_probmulti = train_multinomial(Xtr, ytr, vocabulary)
+	yprmulti = np.array(predict_multi_test(Xt, yt, priormulti, cond_probmulti))
+	precision[j], recall[j], f_meas[j], accuracy[j] = utl.get_perf_params(yprmulti, 2*np.array(yt)-1)
+	j+=1
+
+plot_data = [(precision[i], recall[i]) for i in xrange(len(alphavec))]
+plot_data.sort()
+print plot_data
+x_vals = [plot_data[i][0] for i in xrange(len(alphavec))]
+y_vals = [plot_data[i][1] for i in xrange(len(alphavec))]
+plt.figure(1)
+plt.plot(x_vals, y_vals)
+plt.show()
+
+

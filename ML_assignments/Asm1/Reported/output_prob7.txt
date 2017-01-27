@@ -1,0 +1,8 @@
+Precision = 0.58
+Recall = 0.58
+F-Score = 0.58
+Accuracy (%correct) = 58.0
+Beta parameters from 0 to p:
+[[ 0.07389386]]
+[[ 0.07372488]]
+[[ 0.06774393]]

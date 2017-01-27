@@ -1,0 +1,4 @@
+Precision = 0.810760667904
+Recall = 0.728333333333
+F-Score = 0.76733977173
+Accuracy (%correct) = 77.9166666667

@@ -1,0 +1,81 @@
+import numpy as np
+
+#dirichlet = size(V)*[0]
+#beta = [0.1, 0.1]
+
+def add_words_to_dict(text, words):
+	for word in words:
+		text[word] = text.get(word, 0)+1
+
+def concat_txt_all_docs(X, y, text):
+	j=0
+	for x in X:
+		if y[j]==0:
+			add_words_to_dict(text[0], x)
+		else:
+			add_words_to_dict(text[1], x)
+		j++
+
+def train_multinomial(X, y, V):
+
+	K = prior = [0.0, 0.0]
+	text = [{}, {}]
+	cond_prob = [{}, {}]
+	concat_txt_all_docs(X, y, text)
+
+	for i in xrange(2):
+		prior[i] = sum(y==i)/len(y)
+		for word in V:
+			cond_prob[i][word] = text[i][word]+ 1 + dirichlet[]
+			K[i] += text[i][word]+1
+		for word in V:
+			cond_prob[i][word] /= K[i];
+
+	return prior, cond_prob
+
+def train_bernoulli(X, y, V):
+
+	K = prior = [0.0, 0.0]
+	cond_prob = [{}, {}]
+	text = [{}, {}]
+	concat(X, y, text)
+	for i in xrange(2):
+		prior[i] = sum(y==i)/len(y)
+		for word in V:
+			cond_prob[i][word] = word in text[i].keys() + 1
+			K[i] += word in text[i].keys()
+		for word in V:
+			cond_prob[i][word] /= K[i]+2;
+
+	return prior, cond_prob
+
+
+def predict_bernoulli(V, x, prior, cond_prob):
+
+	score = [0, 0]
+	for i in xrange(2):
+		score[i] += np.log(prior[i])
+		for word in V:
+			if word in x:
+				score[i] += np.log(cond_prob[i].get(word, 1))
+			else:
+				score[i] += np.log(1-cond_prob[i].get(word, 0))
+	if score[0]>score[1]:
+		return 0
+	else:
+		return 1
+
+
+def predict_multinomial(x, prior, cond_prob):
+	
+	score = [0, 0]
+	for i in xrange(2):
+		score[i] += np.log(prior[i])
+		for word in x:
+			score[i] += np.log(cond_prob[i].get(word, 1))
+
+	if score[0]>score[1]:
+		return 0
+	else:
+		return 1
+
